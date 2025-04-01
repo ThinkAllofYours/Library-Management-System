@@ -1,0 +1,40 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace # 코드 끝에 남아 있는 공백을 제거합니다. 코드 스타일을 유지하는 데 중요합니다.
+      - id: end-of-file-fixer # 파일 끝에 줄바꿈을 추가합니다.
+      - id: check-yaml # YAML 파일 검사
+      - id: check-added-large-files # 추가된 파일 크기 검사
+      - id: check-toml # TOML 파일 검사
+      - id: debug-statements # 디버그 문장 검사
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3.12
+        args: [--line-length=119] # 코드 줄 길이 제한을 119자로 제한
+        exclude: ^(./venv/|versions/) # 무시할 디렉토리 지정
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort # import 문을 정리
+        args: ["--profile", "black"] # black의 스타일 가이드를 따르도록 설정
+        exclude: ^(./venv/|versions/) # venv/ 및 versions/ 디렉터리는 정렬 검사에서 제외합니다.
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.0
+    hooks:
+      - id: flake8
+        args: ["--max-line-length=119"]
+        exclude: ^(.venv/|versions/|__pycache__|alembic/|lms/alembic/)
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.398
+    hooks:
+      - id: pyright
+        exclude: ^(\.venv/|versions/|__pycache__|alembic/|lms/alembic/)
+        args: []
+        additional_dependencies: ["fastapi", "sqlalchemy", "alembic", "uvicorn"]
