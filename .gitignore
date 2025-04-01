@@ -1,1 +1,8 @@
 *.pdf
+
+# backend
+backend/.venv
+
+# frontend
+frontend/.next
+frontend/node_modules
