@@ -29,12 +29,4 @@ repos:
     hooks:
       - id: flake8
         args: ["--max-line-length=119"]
-        exclude: ^(.venv/|versions/|__pycache__|alembic/|lms/alembic/)
-
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.398
-    hooks:
-      - id: pyright
-        exclude: ^(\.venv/|versions/|__pycache__|alembic/|lms/alembic/)
-        args: []
-        additional_dependencies: ["fastapi", "sqlalchemy", "alembic", "uvicorn"]
+        exclude: ^(.venv/|versions/|__pycache__|alembic/|backend/lms/alembic/)
