@@ -136,36 +136,11 @@ services:
     networks:
       - lms
 
-  opensearch:
-    image: lms-search:dev
-    container_name: lms-search
-    environment:
-      - cluster.name=lms-cluster
-      - node.name=lms-node
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "DISABLE_SECURITY_PLUGIN=true"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    volumes:
-      - opensearch_data:/usr/share/opensearch/data
-    ports:
-      - "9200:9200"
-    networks:
-      - lms
-
 volumes:
   postgres_data:
   storage_data:
   storage_config:
-  opensearch_data:
   redis_data:
-  nats_data:
 
 networks:
   lms:

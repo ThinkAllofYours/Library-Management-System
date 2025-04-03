@@ -33,7 +33,19 @@ git clone https://github.com/your-repo/library-management-system.git
 cd library-management-system
 ```
 
-2.프로젝트 빌드
+2.필수 설치 사항
+
+- Docker
+- Python
+- Node.js
+- Make
+- Poetry
+
+:::tip
+프로젝트를 위해서 필수 설치 사항이 있습니다. 
+:::
+
+3.프로젝트 빌드
 
 ```bash
 make build
