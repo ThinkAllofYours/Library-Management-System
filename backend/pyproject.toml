@@ -18,10 +18,12 @@ requests = "^2.32.3"
 beautifulsoup4 = "^4.13.3"
 boto3 = "^1.37.25"
 pillow = "^11.2.0"
-taskiq = "^0.11.16"
 taskiq-fastapi = "^0.3.4"
 asyncpg = "^0.30.0"
 redis = "^5.2.1"
+taskiq = {version = "^0.11.16", extras = ["redis"]}
+taskiq-redis = "^1.0.4"
+aiohttp = "^3.11.16"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.2.0"
@@ -36,3 +38,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 build = "scripts.docker:build"
+scrape = "scripts.scrape_books:main"

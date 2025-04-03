@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     AWS_S3_CLIENT_ENDPOINT_URL: str = "http://localhost:9000"
     AWS_S3_CLIENT_URL_BASE: str = "http://localhost:9000/lms"  # path style url
 
+    # pagination
+    PAGINATION_SIZE: int = 10
+
 
 @lru_cache
 def get_settings():

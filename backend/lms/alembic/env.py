@@ -8,6 +8,9 @@ from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+# models
+from lms.api.books.model import *
+
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 

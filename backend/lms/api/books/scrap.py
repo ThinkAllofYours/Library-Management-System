@@ -92,21 +92,12 @@ def scrape_aladin_book(url: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
         # 목차 추출
         table_of_contents = None
-        toc_element = soup.select_one(".conts_info_list2")
-        if toc_element:
-            table_of_contents = toc_element.get_text().strip()
 
         # 소개 추출
         introduction = None
-        intro_element = soup.select_one(".conts_info_list3")
-        if intro_element:
-            introduction = intro_element.get_text().strip()
 
-        # 출판사 이미지 추출
-        publisher_image = None
-        publisher_element = soup.select_one(".publisher_logo img")
-        if publisher_element and publisher_element.get("src"):
-            publisher_image = publisher_element["src"]
+        # 출판사 이미지 추출 = 표지 이미지
+        publisher_image = cover_image_url
 
         # 저자 정보 딕셔너리 생성
         author_info = {"name": author_name, "description": None}  # 알라딘에서 저자 설명을 가져올 수 없는 경우

@@ -16,7 +16,7 @@ class Author(TimestampedMixin, IdBase):
 class Book(TimestampedMixin, IdBase):
     __tablename__ = "books"
 
-    book_manage_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    book_manage_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True, unique=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     author_id: Mapped[str] = mapped_column(String(36), ForeignKey("authors.id"), nullable=False)
     author_rel = relationship("Author", back_populates="books")
@@ -34,8 +34,8 @@ class Book(TimestampedMixin, IdBase):
 
     @property
     def cover_image(self) -> str:
-        return self._cover_image
+        return self._cover_image or ""
 
     @cover_image.setter
-    def cover_image(self, file: UploadFile | None = None):
-        self._cover_image = s3_client.set_file(self.cover_image, file, "media/cover")
+    def cover_image(self, file: UploadFile | str | None = None):
+        self._cover_image = s3_client.set_file(self._cover_image, file, "media/cover")
