@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { BooksService } from "@/api/services/BooksService";
+import { useState, useEffect, useCallback } from "react";
 import { AuthorResponse } from "@/api/models/AuthorResponse";
 import { AuthorCreate } from "@/api/models/AuthorCreate";
 import { Button } from "@/components/ui/button";
@@ -30,13 +29,7 @@ export function AuthorSelectionModal({
     description: "",
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchAuthors();
-    }
-  }, [isOpen]);
-
-  const fetchAuthors = async () => {
+  const fetchAuthors = useCallback(async () => {
     setLoading(true);
     try {
       const response = await AuthorsService.authorsGetAuthors(searchTerm || null, 1, 100);
@@ -56,7 +49,13 @@ export function AuthorSelectionModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAuthors();
+    }
+  }, [isOpen, fetchAuthors]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

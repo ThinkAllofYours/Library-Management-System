@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { BooksService } from "@/api/services/BooksService";
-import { BookResponse } from "@/api/models/BookResponse";
-import { BookUpdate } from "@/api/models/BookUpdate";
+import { BookCreate } from "@/api/models/BookCreate";
 import { Button } from "@/components";
 import Link from "next/link";
 import { ArrowLeft, Save, X, User } from "lucide-react";
@@ -12,14 +11,16 @@ import Image from "next/image";
 import { AuthorSelectionModal } from "@/components/author/AuthorSelectionModal";
 import { AuthorResponse } from "@/api/models/AuthorResponse";
 
-export default function EditBook() {
-  const { id } = useParams();
+export default function CreateBook() {
   const router = useRouter();
-  const [book, setBook] = useState<BookResponse | null>(null);
-  const [formData, setFormData] = useState<BookUpdate>({});
-  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState<BookCreate>({
+    book_manage_id: "",
+    title: "",
+    isbn: "",
+    author_id: "",
+    quantity: 0
+  });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   
   const [publisherImagePreview, setPublisherImagePreview] = useState<string | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
@@ -31,56 +32,6 @@ export default function EditBook() {
 
   const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<AuthorResponse | null>(null);
-
-  useEffect(() => {
-    const fetchBookDetails = async () => {
-      setLoading(true);
-      try {
-        const bookId = Array.isArray(id) ? id[0] : id;
-        if (!bookId) {
-          throw new Error("Book ID is required");
-        }
-
-        const result = await BooksService.booksGetBook(bookId);
-        setBook(result);
-        setSelectedAuthor(result.author);
-
-        setFormData({
-          title: result.title,
-          isbn: result.isbn,
-          description: result.description,
-          price: result.price,
-          quantity: result.quantity,
-          page_count: result.page_count,
-          dimensions: result.dimensions,
-          weight: result.weight,
-          table_of_contents: result.table_of_contents,
-          introduction: result.introduction,
-          publisher_image: result.publisher_image,
-          cover_image: result.cover_image,
-          author_id: result.author_id,
-        });
-
-        if (result.publisher_image) {
-          setPublisherImagePreview(result.publisher_image);
-        }
-        if (result.cover_image) {
-          setCoverImagePreview(result.cover_image);
-        }
-
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching book details:", err);
-        setError("Failed to load book details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchBookDetails();
-    }
-  }, [id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
@@ -95,6 +46,13 @@ export default function EditBook() {
         ...formData,
         [name]: value,
       });
+    }
+
+    if (name === "isbn" && value) {
+      setFormData(prev => ({
+        ...prev,
+        book_manage_id: `Custom_${value}`
+      }));
     }
   };
 
@@ -131,7 +89,6 @@ export default function EditBook() {
       }
     } catch (err) {
       console.error("Error uploading publisher image:", err);
-      setError("Failed to upload publisher image");
     } finally {
       setPublisherUploading(false);
     }
@@ -162,7 +119,6 @@ export default function EditBook() {
       }
     } catch (err) {
       console.error("Error uploading cover image:", err);
-      setError("Failed to upload cover image");
     } finally {
       setCoverUploading(false);
     }
@@ -182,55 +138,26 @@ export default function EditBook() {
     setSaving(true);
 
     try {
-      const bookId = Array.isArray(id) ? id[0] : id;
-      if (!bookId) {
-        throw new Error("Book ID is required");
-      }
-
-      await BooksService.booksUpdateBook(bookId, formData);
-      router.push(`/books/${bookId}`);
+      const result = await BooksService.booksCreateBook(formData);
+      router.push(`/books/${result.book_manage_id}`);
     } catch (err) {
-      console.error("Error updating book:", err);
-      setError("Failed to update book");
+      console.error("Error creating book:", err);
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
-  if (error || !book) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-red-500 mb-4">{error || "Book not found"}</h2>
-          <Link href="/">
-            <Button>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6 flex justify-between">
-        <Link href={`/books/${id}`}>
+        <Link href="/books">
           <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Book Details
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Books
           </Button>
         </Link>
       </div>
 
       <div className="bg-card border rounded-lg shadow-sm p-6">
-        <h1 className="text-2xl font-bold mb-6">Edit Book: {book.title}</h1>
+        <h1 className="text-2xl font-bold mb-6">Create New Book</h1>
 
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col md:flex-row gap-6 mb-6">
@@ -505,7 +432,7 @@ export default function EditBook() {
           </div>
 
           <div className="flex justify-end gap-2 mt-8">
-            <Link href={`/books/${id}`}>
+            <Link href="/books">
               <Button variant="outline" type="button">
                 <X className="mr-2 h-4 w-4" /> Cancel
               </Button>
@@ -514,11 +441,11 @@ export default function EditBook() {
               {saving ? (
                 <>
                   <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
-                  Saving...
+                  Creating...
                 </>
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" /> Save Changes
+                  <Save className="mr-2 h-4 w-4" /> Create Book
                 </>
               )}
             </Button>

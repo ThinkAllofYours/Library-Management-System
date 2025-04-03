@@ -7,6 +7,7 @@ import { BookResponse } from "@/api/models/BookResponse";
 import { Button } from "@/components";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
+import Image from 'next/image';
 
 export default function BookDetail() {
   const { id } = useParams();
@@ -18,14 +19,11 @@ export default function BookDetail() {
     const fetchBookDetails = async () => {
       setLoading(true);
       try {
-        // Convert id to string if it's an array
         const bookId = Array.isArray(id) ? id[0] : id;
         if (!bookId) {
           throw new Error("Book ID is required");
         }
-        console.log("Fetching book with ID:", bookId);
         const result = await BooksService.booksGetBook(bookId);
-        console.log("Book data received:", result);
         setBook(result);
         setError(null);
       } catch (err) {
@@ -80,9 +78,11 @@ export default function BookDetail() {
         {/* Book Cover Image */}
         <div className="md:col-span-1">
           <div className="rounded-lg overflow-hidden border bg-background shadow-sm">
-            <img
+            <Image
               src={book.cover_image || book.publisher_image || "/placeholder-book.png"}
               alt={book.title}
+              width={500}
+              height={500}
               className="w-full object-cover h-auto max-h-[500px]"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -114,7 +114,7 @@ export default function BookDetail() {
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <p className="text-muted-foreground text-sm">Price</p>
-              <p className="font-semibold">${book.price?.toFixed(2) || 'N/A'}</p>
+              {book.price != null && <p className="font-semibold">{book.price.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원</p>}
             </div>
             <div>
               <p className="text-muted-foreground text-sm">Quantity in Stock</p>

@@ -23,7 +23,7 @@ interface SearchBarProps {
 
 type SearchType = "title" | "author"
 
-export function SearchBar({ 
+export const SearchBar = React.memo(function SearchBar({ 
   onSearch, 
   onRefresh, 
   className,
@@ -34,7 +34,7 @@ export function SearchBar({
   const [isRefreshing, setIsRefreshing] = React.useState(false)
   const [searchType, setSearchType] = React.useState<SearchType>(initialSearchType)
   
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = React.useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (!searchValue.trim()) {
       onSearch(undefined, undefined)
@@ -46,47 +46,59 @@ export function SearchBar({
     } else {
       onSearch(undefined, searchValue)
     }
-  }
+  }, [searchValue, searchType, onSearch])
   
-  const handleRefresh = async () => {
+  const handleRefresh = React.useCallback(async () => {
     setIsRefreshing(true)
     await onRefresh()
     setTimeout(() => setIsRefreshing(false), 500)
-  }
+  }, [onRefresh])
 
+  const handleSearchTypeChange = React.useCallback((value: SearchType) => {
+    setSearchType(value)
+  }, [])
+
+  const handleSearchValueChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value)
+  }, [])
+  
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <form onSubmit={handleSearch} className="relative flex-1 flex gap-2">
-        <Select value={searchType} onValueChange={(value: SearchType) => setSearchType(value)}>
-          <SelectTrigger className="w-[120px]">
-            <SelectValue placeholder="검색 유형" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="title">제목</SelectItem>
-            <SelectItem value="author">저자</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder={searchType === "title" ? "책 제목으로 검색..." : "저자 이름으로 검색..."}
-            className="pl-8"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-          />
-        </div>
-      </form>
-      <Button 
-        variant="outline" 
-        size="icon" 
-        onClick={handleRefresh}
-        className={isRefreshing ? "animate-spin" : ""}
-        title="새로고침"
-      >
-        <RefreshCw className="h-4 w-4" />
-        <span className="sr-only">새로고침</span>
+    <form onSubmit={handleSearch} className={cn("flex gap-2", className)}>
+      <Select value={searchType} onValueChange={handleSearchTypeChange}>
+        <SelectTrigger className="w-[120px]">
+          <SelectValue placeholder="Search by" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="title">Title</SelectItem>
+          <SelectItem value="author">Author</SelectItem>
+        </SelectContent>
+      </Select>
+      
+      <Input
+        type="text"
+        placeholder={`Search by ${searchType}...`}
+        value={searchValue}
+        onChange={handleSearchValueChange}
+        className="flex-1"
+      />
+      
+      <Button type="submit" variant="outline" size="icon">
+        <Search className="h-4 w-4" />
       </Button>
-    </div>
+      
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+      >
+        {isRefreshing ? (
+          <RefreshCw className="h-4 w-4 animate-spin" />
+        ) : (
+          <RefreshCw className="h-4 w-4" />
+        )}
+      </Button>
+    </form>
   )
-}
+})

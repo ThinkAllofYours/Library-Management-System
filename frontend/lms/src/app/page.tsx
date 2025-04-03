@@ -1,69 +1,90 @@
-"use client"; // 클라이언트 컴포넌트로 지정
+"use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardFooter, CardTitle, SearchBar } from "@/components"; // 필요한 컴포넌트 임포트
-import { Button } from "@/components"; // Button 컴포넌트 임포트
-import { BooksService } from "@/api/services/BooksService"; // API 서비스 임포트
-import { BookResponse } from "@/api/models/BookResponse"; // 타입 임포트
-import Link from "next/link"; // Link 컴포넌트 임포트
-import { Plus, MoreVertical, Edit, Trash2 } from "lucide-react"; // 아이콘 임포트
+import { useRef, useState, useEffect } from "react";
+import { Card, CardContent, CardFooter, CardTitle, SearchBar } from "@/components";
+import { Button } from "@/components";
+import { BooksService } from "@/api/services/BooksService";
+import Link from "next/link";
+import { Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"; // 드롭다운 메뉴 컴포넌트 임포트
-import { useRouter } from "next/navigation"; // 라우터 임포트
+} from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
+import { BookCreationModal } from "@/components/book/BookCreationModal";
+import Image from "next/image";
+import { 
+  useInfiniteQuery, 
+  useQueryClient, 
+  useMutation 
+} from "@tanstack/react-query";
 
 export default function Home() {
-  const [books, setBooks] = useState<BookResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
-  const [searchTitle, setSearchTitle] = useState<string | undefined>(undefined);
-  const [searchAuthor, setSearchAuthor] = useState<string | undefined>(undefined);
   const [currentSearchValue, setCurrentSearchValue] = useState("");
   const [currentSearchType, setCurrentSearchType] = useState<"title" | "author">("title");
+  const [searchTitle, setSearchTitle] = useState<string | undefined>(undefined);
+  const [searchAuthor, setSearchAuthor] = useState<string | undefined>(undefined);
+  const observerTarget = useRef(null);
   const router = useRouter();
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchBooks = async (resetPage = true) => {
-    setLoading(true); // 로딩 시작
-    try {
-      const currentPage = resetPage ? 1 : page;
-      if (resetPage) {
-        setPage(1);
-      }
-
-      // 검색 조건을 API 호출에 전달
+  // React Query infinite query
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch
+  } = useInfiniteQuery({
+    queryKey: ['books', searchTitle, searchAuthor],
+    queryFn: async ({ pageParam = 1 }) => {
       const result = await BooksService.booksGetBooks(
         searchAuthor,
         searchTitle,
-        currentPage,
+        pageParam,
         10
       );
+      return result;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 10 ? allPages.length + 1 : undefined;
+    }
+  });
 
-      // 첫 페이지 로드 또는 검색/새로고침 시 목록 교체, 그 외에는 추가
-      setBooks(currentPage === 1 ? result : [...books, ...result]);
-    } catch (error) {
-      console.error("Error fetching books:", error);
-      // 사용자에게 에러 발생을 알리는 UI 추가 고려
-    } finally {
-      setLoading(false); // 로딩 종료
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => BooksService.booksDeleteBook(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+    }
+  });
+
+  const handleObserver = (entries: IntersectionObserverEntry[]) => {
+    const target = entries[0];
+    if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
   };
 
   useEffect(() => {
-    fetchBooks(false);
-  }, [page]);
-
-  useEffect(() => {
-    // 항상 fetchBooks를 호출하여 검색어가 비어있을 때도 모든 책을 표시
-    fetchBooks(true);
-  }, [searchTitle, searchAuthor]);
-
-  const handleLoadMore = () => {
-    setPage(prevPage => prevPage + 1);
-  };
+    const observer = new IntersectionObserver(handleObserver, { threshold: 0.1 });
+    
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+    
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage]);
 
   const handleSearch = (title?: string, authorName?: string) => {
     setSearchTitle(title);
@@ -76,19 +97,18 @@ export default function Home() {
       setCurrentSearchValue(authorName);
       setCurrentSearchType("author");
     } else {
-      // 검색어가 없는 경우 검색어 상태 초기화
       setCurrentSearchValue("");
       setCurrentSearchType("title");
     }
   };
 
   const handleRefresh = async () => {
-    await fetchBooks(true);
+    await refetch();
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.preventDefault(); // 링크 클릭 이벤트 방지
-    e.stopPropagation(); // 이벤트 버블링 방지
+    e.preventDefault();
+    e.stopPropagation();
 
     if (!confirm("이 책을 삭제하시겠습니까?")) {
       return;
@@ -96,9 +116,7 @@ export default function Home() {
 
     try {
       setDeleteLoading(id);
-      await BooksService.booksDeleteBook(id);
-      // 삭제 후 목록에서 제거
-      setBooks(prevBooks => prevBooks.filter(book => book.book_manage_id !== id));
+      await deleteMutation.mutateAsync(id);
     } catch (error) {
       console.error("Error deleting book:", error);
       alert("책 삭제 중 오류가 발생했습니다.");
@@ -108,12 +126,14 @@ export default function Home() {
   };
 
   const handleEdit = (id: string, e: React.MouseEvent) => {
-    e.preventDefault(); // 링크 클릭 이벤트 방지
-    e.stopPropagation(); // 이벤트 버블링 방지
+    e.preventDefault();
+    e.stopPropagation();
     router.push(`/books/edit/${id}`);
   };
 
-  if (loading && page === 1) {
+  const books = data?.pages.flatMap(page => page) || [];
+
+  if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
@@ -133,17 +153,17 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {/* Add new book card */}
-        <Link href="/books/create">
-          <Card className="h-full flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
-            <CardContent className="flex flex-col items-center justify-center h-full">
-              <div className="w-full h-[220px] flex items-center justify-center bg-muted rounded-md">
-                <Plus className="h-12 w-12 text-muted-foreground" />
-              </div>
-              <CardTitle className="mt-4 text-center">Add New Book</CardTitle>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card 
+          className="h-full flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors"
+          onClick={() => setIsBookModalOpen(true)}
+        >
+          <CardContent className="flex flex-col items-center justify-center h-full">
+            <div className="w-full h-[220px] flex items-center justify-center bg-muted rounded-md">
+              <Plus className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <CardTitle className="mt-4 text-center">Add New Book</CardTitle>
+          </CardContent>
+        </Card>
 
         {/* Book cards */}
         {books.map((book) => (
@@ -185,23 +205,26 @@ export default function Home() {
 
               <CardContent className="p-4 flex-grow">
                 <div className="w-full h-[220px] overflow-hidden rounded-md mb-4">
-                  <img
-                    src={book.publisher_image || "/placeholder-book.png"} // 기본 이미지 추가
+                  <Image
+                    src={book.publisher_image || "/placeholder-book.png"}
                     alt={book.title}
                     className="w-full h-full object-cover"
+                    width={220}
+                    height={220}
+                    loading="lazy"
+                    quality={75}
+                    placeholder="blur"
+                    blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlhZWiAAAAAAAABvogAAOPUAAAOQWFlaIAAAAAAAAGKZAAC3hQAAGNpYWVogAAAAAAAAJKAAAA+EAAC2z2Rlc2MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB0ZXh0AAAAAElYAABYWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSAyVC08MTY3LjIyOUFTRjo/Tj4yMkhiSk46NjVBQVRAQkBAQEBAQED/2wBDAR4eHh0aHTQaGjRAOC40QEA0QEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQED/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAb/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.onerror = null;
                       target.src = "/placeholder-book.png";
                     }}
                   />
                 </div>
                 <CardTitle className="line-clamp-2 h-14">{book.title}</CardTitle>
-                {/* 저자 정보가 없을 경우를 대비 (선택적) */}
                 <p className="text-sm text-muted-foreground mt-2">{book.author?.name || 'Unknown Author'}</p>
               </CardContent>
               <CardFooter className="p-4 pt-0 justify-between">
-                {/* 가격 정보가 없을 경우 표시하지 않음 */}
                 {book.price != null && <p className="font-semibold">{book.price.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원</p>}
                 <p className="text-sm text-muted-foreground">Qty: {book.quantity ?? 0}</p>
               </CardFooter>
@@ -211,16 +234,20 @@ export default function Home() {
       </div>
 
       {books.length >= 10 && (
-        <div className="flex justify-center mt-8">
-          <Button onClick={handleLoadMore} disabled={loading}>
-            {loading ? 'Loading...' : 'Load More'}
-          </Button>
+        <div ref={observerTarget} className="h-10 flex justify-center items-center">
+          {isFetchingNextPage && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>}
         </div>
       )}
 
-      {!loading && books.length === 0 && page === 1 && (
+      {!isLoading && books.length === 0 && (
           <div className="text-center mt-8 text-muted-foreground">No books found.</div>
       )}
+
+      <BookCreationModal 
+        isOpen={isBookModalOpen} 
+        onClose={() => setIsBookModalOpen(false)}
+        onSuccess={handleRefresh}
+      />
     </div>
   );
 }
