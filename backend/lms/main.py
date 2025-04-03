@@ -2,6 +2,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
+from .api.authors.api import router as authors_router
 from .api.books.api import router as books_router
 from .config import settings
 
@@ -47,3 +48,4 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(books_router)
+app.include_router(authors_router)

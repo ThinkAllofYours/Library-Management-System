@@ -1,7 +1,8 @@
+import os
 from datetime import datetime, timezone
 from typing import Generic, Sequence, TypeVar
 
-from fastapi import Depends, Query
+from fastapi import Depends, HTTPException, Query, UploadFile
 from lms.config import settings
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -55,3 +56,32 @@ async def paginate(session: AsyncSession, query, params: PaginationParams = Depe
         size=size,
         pages=pages,
     )
+
+
+ALLOWED_EXTENSIONS = {
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".txt",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".svg",
+    ".zip",
+}
+
+
+def validate_file_type(file: UploadFile):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="File name is required")
+    # Get the file extension
+    __, file_extension = os.path.splitext(file.filename)
+    file_extension = file_extension.lower()
+
+    if file_extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"File type {file_extension} is not allowed")

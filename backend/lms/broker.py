@@ -2,7 +2,8 @@ import logging
 from typing import Any, Dict, Optional
 
 import redis.asyncio as redis
-from lms.api.books.model import Author, Book
+from lms.api.authors.model import Author
+from lms.api.books.model import Book
 from lms.base.storage import S3Client
 from lms.config import settings
 from lms.database import AsyncSessionLocal

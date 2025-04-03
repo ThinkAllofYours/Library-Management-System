@@ -24,6 +24,7 @@ redis = "^5.2.1"
 taskiq = {version = "^0.11.16", extras = ["redis"]}
 taskiq-redis = "^1.0.4"
 aiohttp = "^3.11.16"
+python-multipart = "^0.0.20"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.2.0"

@@ -1,12 +1,15 @@
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from lms.api.books.model import Author, Book
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from lms.api.authors.api import AuthorResponse
+from lms.api.authors.model import Author
+from lms.api.books.model import Book
 from lms.api.books.scrap import scrape_aladin_book
+from lms.base.storage import s3_client
 from lms.broker import process_book_info_task
 from lms.deps import SessionDep
-from lms.util.utils import paginate
+from lms.util.utils import paginate, validate_file_type
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -16,24 +19,6 @@ router = APIRouter(prefix="/api/books", tags=["books"])
 ########################################################
 # Schemas
 ########################################################
-
-
-class AuthorBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-
-class AuthorCreate(AuthorBase):
-    pass
-
-
-class AuthorResponse(AuthorBase):
-    id: str
-    created: datetime
-    modified: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class BookBase(BaseModel):
@@ -66,6 +51,7 @@ class BookUpdate(BaseModel):
     table_of_contents: Optional[str] = None
     introduction: Optional[str] = None
     publisher_image: Optional[str] = None
+    cover_image: Optional[str] = None
     author_id: Optional[str] = None
     isbn: Optional[str] = None
 
@@ -105,7 +91,7 @@ class BookFilter(BaseModel):
 
 @router.get("/", response_model=List[BookResponse])
 async def get_books(session: SessionDep, filter: BookFilter = Depends(), pagination: Pagination = Depends()):
-    query = select(Book).options(joinedload(Book.author_rel))
+    query = select(Book).options(joinedload(Book.author_rel)).order_by(Book.created.desc())
 
     if filter.author_name:
         query = query.join(Author).where(Author.name.ilike(f"%{filter.author_name}%"))
@@ -113,7 +99,6 @@ async def get_books(session: SessionDep, filter: BookFilter = Depends(), paginat
         query = query.where(Book.title.ilike(f"%{filter.title}%"))
 
     paginated = await paginate(session, query, pagination)
-    # author_rel을 author로 매핑
     for book in paginated.items:
         book.author = book.author_rel
     return paginated.items
@@ -258,25 +243,26 @@ async def get_book_info_from_url(request: ScrapeBookInfoRequest):
 
 
 ########################################################
-# Author CRUD
+# image upload
 ########################################################
+MAX_FILE_SIZE_MEGA = 5
 
 
-@router.post("/authors", response_model=AuthorResponse)
-async def create_author(author: AuthorCreate, session: SessionDep):
-    db_author = Author(**author.model_dump())
-    session.add(db_author)
-    await session.commit()
-    await session.refresh(db_author)
-    return db_author
+@router.post("/upload", response_model=List[str])
+async def upload_files(files: List[UploadFile]):
+    uploads = []
+    for f in files:
+        # File size limit
+        if not f.size:
+            raise HTTPException(status_code=400, detail="File size is 0 bytes")
+        if f.size > MAX_FILE_SIZE_MEGA * 1024 * 1024:
+            raise HTTPException(status_code=400, detail=f"File size limit is {MAX_FILE_SIZE_MEGA} Mega bytes")
 
+        # File type validation
+        validate_file_type(f)
 
-@router.get("/authors/{id}", response_model=AuthorResponse)
-async def get_author(id: str, session: SessionDep):
-    query = select(Author).where(Author.id == id)
-    result = await session.execute(query)
-    author = result.scalar_one_or_none()
+        # Upload to S3
+        file_url = s3_client.set_file(None, f, "media/cover")
+        uploads.append(file_url)
 
-    if not author:
-        raise HTTPException(status_code=404, detail="Author not found")
-    return author
+    return uploads

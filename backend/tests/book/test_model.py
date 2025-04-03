@@ -1,7 +1,8 @@
 import uuid
 
 import pytest
-from lms.api.books.model import Author, Book
+from lms.api.authors.model import Author
+from lms.api.books.model import Book
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
