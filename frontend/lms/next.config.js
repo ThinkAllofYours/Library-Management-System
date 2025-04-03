@@ -1,11 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '9000',
+        protocol: process.env.NODE_ENV === 'production' ? 'https' : 'http',
+        hostname: process.env.NODE_ENV === 'production' 
+          ? 'storage.big-dolphin.life' 
+          : 'localhost',
+        port: process.env.NODE_ENV === 'production' ? '' : '9000',
         pathname: '/lms/media/**',
       },
     ],

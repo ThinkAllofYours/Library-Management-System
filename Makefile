@@ -10,8 +10,14 @@ up-backend:
 	docker network create lms || true
 	docker-compose -f docker-compose-dev.yml up -d
 
+build-frontend:
+	docker build -t lms-frontend:dev -f Dockerfile.frontend . --no-cache
+
 up-frontend:
-	docker-compose -f docker-compose-front.yml up -d
+	docker-compose -f docker-compose-dev-frontend.yml up -d
+
+down-frontend:
+	docker-compose -f docker-compose-dev-frontend.yml down
 
 restart-backend:
 	docker-compose -f docker-compose-dev.yml down

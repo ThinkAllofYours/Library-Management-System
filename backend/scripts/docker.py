@@ -9,5 +9,9 @@ def build():
 
 
 def build_frontend():
-    print("Building Frontend Docker image...")
-    subprocess.run(["docker", "build", "-t", "lms-frontend:dev", "-f", "Dockerfile.frontend", "."], check=True)
+    print("Building frontend Docker image...")
+    # docker build -t lms-frontend:dev -f dockerfile.frontend . --no-cache
+    subprocess.run(
+        ["docker", "build", "-t", "lms-frontend:dev", "-f", "Dockerfile.frontend", ".", "--no-cache"], check=True
+    )
+    print("Frontend Docker image has been built.")

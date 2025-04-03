@@ -39,4 +39,5 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 build = "scripts.docker:build"
+build-frontend = "scripts.docker:build_frontend"
 scrape = "scripts.scrape_books:main"

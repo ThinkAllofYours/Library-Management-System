@@ -23,7 +23,7 @@ Library-Management-System for coding interview
 
 ## 설치 방법
 
-1.프로젝트 클론
+### 프로젝트 클론
 
 ```bash
 git clone https://github.com/your-repo/library-management-system.git
@@ -33,7 +33,7 @@ git clone https://github.com/your-repo/library-management-system.git
 cd library-management-system
 ```
 
-2.필수 설치 사항
+### 필수 설치 사항
 
 - Docker
 - Python
@@ -41,11 +41,29 @@ cd library-management-system
 - Make
 - Poetry
 
+### mac에서 설치방법
+
+```bash
+brew install docker
+brew install python
+brew install node
+brew install make
+brew install poetry
+```
+
 :::tip
-프로젝트를 위해서 필수 설치 사항이 있습니다. 
+프로젝트를 위해서 필수 설치 사항이 있습니다.
 :::
 
-3.프로젝트 빌드
+### 프로젝트 시작하기
+
+#### 가상환경 실행
+
+```bash
+poetry shell && poetry install
+```
+
+#### 프로젝트 빌드
 
 ```bash
 make build
@@ -59,9 +77,19 @@ make up-backend
 alembic upgrade head
 ```
 
+#### 스토리지 초기화
+
 ```bash
 docker compose -f docker-compose-dev.yml run --rm storage-init
 ```
+
+#### 프론트엔드 빌드
+
+```bash
+make build-frontend
+```
+
+#### 프론트엔드 실행
 
 ```bash
 make up-frontend
