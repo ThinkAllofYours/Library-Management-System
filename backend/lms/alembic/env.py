@@ -2,14 +2,14 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+
+# models
+from lms.api.books.model import *
 from lms.base.model import Base
 from lms.config import settings
 from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-# models
-from lms.api.books.model import *
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

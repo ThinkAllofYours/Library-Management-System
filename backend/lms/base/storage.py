@@ -49,24 +49,25 @@ class S3Client:
         self, current_url: str, new_file: UploadFile | str | None, path_prefix: str, optimize: bool = False
     ) -> str:
         # URL 문자열인 경우 동기적으로 이미지 다운로드
-        if isinstance(new_file, str) and new_file.startswith(('http://', 'https://')):
-            import requests
+        if isinstance(new_file, str) and new_file.startswith(("http://", "https://")):
             import io
-            
+
+            import requests
+
             try:
                 response = requests.get(new_file, timeout=10)
                 if response.status_code == 200:
                     # Create UploadFile from downloaded content
                     file_obj = UploadFile(
-                        filename=new_file.split('/')[-1],
+                        filename=new_file.split("/")[-1],
                         file=io.BytesIO(response.content),
-                        content_type=response.headers.get('Content-Type', 'image/jpeg')
+                        content_type=response.headers.get("Content-Type", "image/jpeg"),
                     )
                     return self.upload_file(file_obj, path_prefix)
             except Exception as e:
                 print(f"이미지 다운로드 실패: {e}")
             return new_file
-        
+
         if current_url:
             key_prefix = f"{settings.AWS_S3_CLIENT_URL_BASE}"
             if key_prefix in current_url:
@@ -122,27 +123,25 @@ class S3Client:
             return False
 
     async def download_image_from_url(self, url: str, path_prefix: str) -> str:
-        import aiohttp
         import io
+
+        import aiohttp
         from fastapi import UploadFile
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status == 200:
                     content = await response.read()
-                    
+
                     # 파일 객체 생성
                     file_like = io.BytesIO(content)
-                    
+
                     # UploadFile 생성 (content_type 직접 설정 없이)
-                    file_obj = UploadFile(
-                        file=file_like,
-                        filename=url.split('/')[-1]
-                    )
-                    
+                    file_obj = UploadFile(file=file_like, filename=url.split("/")[-1])
+
                     # UploadFile 내부 _content_type 설정
-                    file_obj._content_type = response.headers.get('Content-Type', 'image/jpeg')
-                    
+                    file_obj._content_type = response.headers.get("Content-Type", "image/jpeg")
+
                     return self.upload_file(file_obj, path_prefix)
         return url
 

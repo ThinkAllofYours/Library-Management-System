@@ -1,15 +1,14 @@
 import logging
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional
 
 import redis.asyncio as redis
-from taskiq_redis import RedisAsyncResultBackend, RedisStreamBroker
 from lms.api.books.model import Author, Book
-from lms.config import settings
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-from lms.database import AsyncSessionLocal
 from lms.base.storage import S3Client
+from lms.config import settings
+from lms.database import AsyncSessionLocal
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from taskiq_redis import RedisAsyncResultBackend, RedisStreamBroker
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +29,7 @@ BOOK_INFO_QUEUE = "book_info_queue"
 # S3 클라이언트
 s3_client = S3Client()
 
+
 async def get_redis_client():
     """Redis 클라이언트 가져오기"""
     global redis_client
@@ -38,11 +38,12 @@ async def get_redis_client():
         logger.info("Redis 연결 설정 완료")
     return redis_client
 
+
 @broker.task(task_name="process_book_info")
 async def process_book_info_task(author_info: Dict[str, Any], book_info: Dict[str, Any]):
     """책 정보 처리 작업"""
     try:
-        logger.info(f"세션 연결 시작")
+        logger.info("세션 연결 시작")
         session = AsyncSessionLocal()
         try:
             logger.info(f"세션 연결 성공: {session}")
@@ -52,6 +53,7 @@ async def process_book_info_task(author_info: Dict[str, Any], book_info: Dict[st
     except Exception as e:
         logger.error(f"태스크 실행 중 오류 발생: {str(e)}")
         raise
+
 
 async def save_book_info(
     author_info: Dict[str, Any], book_info: Dict[str, Any], session: AsyncSession
@@ -69,14 +71,14 @@ async def save_book_info(
         if not author_name:
             logger.error("저자 정보에 이름이 없음")
             return None
-            
+
         # 이미지 URL 처리 - cover_image는 모델의 setter를 사용하지 않고 직접 _cover_image 설정
-        if "_cover_image" in book_info and book_info["_cover_image"].startswith(('http://', 'https://')):
+        if "_cover_image" in book_info and book_info["_cover_image"].startswith(("http://", "https://")):
             downloaded_url = await s3_client.download_image_from_url(book_info["_cover_image"], "media/cover")
             logger.info(f"downloaded_url: {downloaded_url}")
             book_info["_cover_image"] = downloaded_url
-        
-        if "publisher_image" in book_info and book_info["publisher_image"].startswith(('http://', 'https://')):
+
+        if "publisher_image" in book_info and book_info["publisher_image"].startswith(("http://", "https://")):
             downloaded_url = await s3_client.download_image_from_url(book_info["publisher_image"], "media/publisher")
             book_info["publisher_image"] = downloaded_url
 
@@ -84,7 +86,7 @@ async def save_book_info(
         author_query = select(Author).where(Author.name == author_name)
         result = await session.execute(author_query)
         author = result.scalar_one_or_none()
-            
+
         if not author:
             # 새 저자 생성
             author = Author(**author_info)
@@ -99,7 +101,7 @@ async def save_book_info(
         book_query = select(Book).where(Book.isbn == isbn)
         result = await session.execute(book_query)
         existing_book = result.scalar_one_or_none()
-            
+
         if existing_book:
             # 기존 도서 정보 업데이트
             for key, value in book_info.items():
@@ -123,7 +125,7 @@ async def save_book_info(
             "author_name": author.name,
             "book_id": str(book.id),
             "book_title": book.title,
-            "isbn": book.isbn
+            "isbn": book.isbn,
         }
 
     except Exception as e:

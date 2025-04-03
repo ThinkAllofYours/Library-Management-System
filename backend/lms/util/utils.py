@@ -1,12 +1,11 @@
 from datetime import datetime, timezone
 from typing import Generic, Sequence, TypeVar
 
-from fastapi import Query, Depends
-from pydantic import BaseModel
+from fastapi import Depends, Query
 from lms.config import settings
-from sqlalchemy import select, func
+from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 
 
 def timezone_now():
@@ -17,7 +16,9 @@ class PaginationParams(BaseModel):
     page: int = Query(1, ge=1)
     size: int = Query(settings.PAGINATION_SIZE, ge=1, le=100)
 
+
 T = TypeVar("T")
+
 
 class Paginated(BaseModel, Generic[T]):
     items: Sequence[T]
