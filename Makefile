@@ -13,6 +13,13 @@ up-backend:
 up-frontend:
 	docker-compose -f docker-compose-front.yml up -d
 
+restart-backend:
+	docker-compose -f docker-compose-dev.yml down
+	docker-compose -f docker-compose-dev.yml up -d
+
+scrape:
+	cd backend && poetry run scrape
+
 install:
 	# Install backend dependencies
 	cd backend && poetry install
