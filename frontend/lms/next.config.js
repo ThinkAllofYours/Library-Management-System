@@ -4,14 +4,19 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: process.env.NODE_ENV === 'production' ? 'https' : 'http',
-        hostname: process.env.NODE_ENV === 'production' 
-          ? 'storage.big-dolphin.life' 
-          : 'localhost',
-        port: process.env.NODE_ENV === 'production' ? '' : '9000',
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '9000',
         pathname: '/lms/media/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'minio',
+        port: '9000',
+        pathname: '/lms/media/**',
+      }
     ],
+    unoptimized: true,
   },
 };
 

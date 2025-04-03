@@ -23,6 +23,9 @@ restart-backend:
 	docker-compose -f docker-compose-dev.yml down
 	docker-compose -f docker-compose-dev.yml up -d
 
+storage-init:
+	docker compose -f docker-compose-dev.yml run --rm storage-init
+
 scrape:
 	cd backend && poetry run scrape
 
